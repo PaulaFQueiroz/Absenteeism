@@ -10,7 +10,7 @@ head(abs)
 
 
 
-
+################################################################################Grouping Reason type
 # call reason.type rep("NA, num of rows in abs), for each i from 1 to num of rows
 #look in each reason for absence from 1 to num of rows, call reasin each reason.for ansence in 
 # if reason(num of reasin.for.absence) is an element of c()then assign it to reason.type = G1
@@ -43,11 +43,11 @@ summary(abs)
 
 #delete columns we dont want
 abs_data <- abs[,-c(1,9,10,11,17,18)]
-names(abs_data)
+#names(abs_data)
 
 
 
-
+################################################################################Change data type
 #make it all categorical
 cat.col <- c(1,2,3,8,10,11,15) #month, week, season,edu,drink, smoke,reason
 for (i in cat.col)
@@ -55,8 +55,8 @@ for (i in cat.col)
   abs_data[,i] <- as.factor(as.character(abs_data[,i]))
 }
 
-summary(abs_data)
-
+#summary(abs_data)
+################################################################################Adding Dummies
 # Load the caret package
 library(caret)
 
@@ -74,11 +74,6 @@ abs_data <- cbind(abs_data, month)
 abs_data <- abs_data[, -which(names(abs_data) == "Month.of.absence")]
 
 
-# View the updated data frame
-head(abs_data)
-names(abs_data)
-
-
 
 # Define the formula for creating dummy variables for "Month.of.absence"
 formula <- as.formula("~ Day.of.the.week")
@@ -91,11 +86,6 @@ as.data.frame(days)
 abs_data <- cbind(abs_data, days)
 # Drop the original "Month.of.absence" variable
 abs_data <- abs_data[, -which(names(abs_data) == "Day.of.the.week")]
-
-
-# View the updated data frame
-head(abs_data)
-names(abs_data)
 
 
 # Define the formula for creating dummy variables for "Month.of.absence"
@@ -111,11 +101,6 @@ abs_data <- cbind(abs_data, seasons)
 abs_data <- abs_data[, -which(names(abs_data) == "Seasons")]
 
 
-# View the updated data frame
-head(abs_data)
-names(abs_data)
-
-
 # Define the formula for creating dummy variables for "Month.of.absence"
 formula <- as.formula("~ Education")
 # Use dummyVars to create dummy variables
@@ -127,11 +112,6 @@ as.data.frame(education)
 abs_data <- cbind(abs_data, education)
 # Drop the original "Month.of.absence" variable
 abs_data <- abs_data[, -which(names(abs_data) == "Education")]
-
-
-# View the updated data frame
-head(abs_data)
-names(abs_data)
 
 
 # Define the formula for creating dummy variables for "Month.of.absence"
@@ -147,11 +127,6 @@ abs_data <- cbind(abs_data, drinker)
 abs_data <- abs_data[, -which(names(abs_data) == "Social.drinker")]
 
 
-# View the updated data frame
-head(abs_data)
-names(abs_data)
-
-
 # Define the formula for creating dummy variables for "Month.of.absence"
 formula <- as.formula("~ Social.smoker")
 # Use dummyVars to create dummy variables
@@ -163,11 +138,6 @@ as.data.frame(smoker)
 abs_data <- cbind(abs_data, smoker)
 # Drop the original "Month.of.absence" variable
 abs_data <- abs_data[, -which(names(abs_data) == "Social.smoker")]
-
-
-# View the updated data frame
-head(abs_data)
-names(abs_data)
 
 
 
@@ -188,7 +158,7 @@ abs_data <- abs_data[, -which(names(abs_data) == "reason_type")]
 head(abs_data)
 names(abs_data)
 
-#############################################################################Viz
+################################################################################Viz
 #reason
 library(ggplot2)
 ggplot(abs_data, aes(x=reorder(reason_type, reason_type, function(x)-length(x)))) +
@@ -243,42 +213,20 @@ ggplot(abs_data, aes(x = Body.mass.index, y = Absenteeism.time.in.hours)) +
   geom_bin2d(bins = 20, aes(fill = stat(count)), alpha = 0.6) +
   labs(title = "2D Histogram Plot", x = "X-axis label", y = "Y-axis label")
 
-###########################################################################
-
-##############################################################################try random forest: 
-
-
+#################################################################################Random forest: 
 # Load necessary libraries
 library(randomForest)
 
-library(caret)
-
-
-#train and test
+################################################################################train and test
 set.seed(1)
-
 
 train <- sample(1:nrow(abs_data),0.8*nrow(abs_data))
 training_data <- abs_data[train,]
 testing_data <- abs_data[-train,]
 
-# Define the row indices for training and testing
-train_indices <- sample(1:nrow(abs_data), nrow(abs_data) / 2)
-test_indices <- setdiff(1:nrow(abs_data), train_indices)
-
-# Create training and testing data
-training_data <- abs_data[train_indices, ]
-testing_data <- abs_data[test_indices, ]
 
 
-
-names(abs_data)
-names(training_data)
-dim(abs_data)
-dim(testing_data)
-
-
-#######################################################had problems with model
+################################################################################Quality check
 # Check for missing values in training_data
 any(is.na(training_data))
 
@@ -293,47 +241,9 @@ sapply(training_data, class)
 
 # Check the dimensions of training_data
 dim(training_data)
-
-########################################################Solution
-
-# Identify categorical variables
-categorical_vars <- names(training_data)[sapply(training_data, is.factor)]
-
-
-# One-hot encode categorical variables and store as data frames
-training_data <- as.data.frame(model.matrix(Absenteeism.time.in.hours ~ ., data = training_data))
-testing_data <- as.data.frame(model.matrix(Absenteeism.time.in.hours ~ ., data = testing_data))
-
-
-
-training_data <- training_data[, -1]
-testing_data <- testing_data[, -1]
-
-class(training_data)
 class(testing_data)
 
-colnames(training_data)
-colnames(testing_data)
-
-# Add the target variable back to the data frames
-training_data$Absenteeism.time.in.hours <- abs_data[train_indices, ]$Absenteeism.time.in.hours
-testing_data$Absenteeism.time.in.hours <- abs_data[test_indices, ]$Absenteeism.time.in.hours
-
-
-###############################################Model again: 
-dim(training_data)
-dim(testing_data)
-dim(abs_data)
-
-
-# Check if the target variable is present in both data frames
-"Absenteeism.time.in.hours" %in% colnames(training_data)
-"Absenteeism.time.in.hours" %in% colnames(testing_data)
-
-
-
-
-# Build a Random Forest model using one-hot encoded predictors
+################################################################################Build Random Forest model
 rf_model <- randomForest(Absenteeism.time.in.hours ~ ., data = training_data)
 
 
@@ -344,29 +254,17 @@ predictions <- predict(rf_model, newdata = testing_data)
 # Ensure testing_data is a data frame (assuming it's not already)
 testing_data <- as.data.frame(testing_data)
 
-# Evaluate the model (calculate RMSE)
+################################################################################ Evaluate the model (calculate RMSE)
 rmse <- sqrt(mean((predictions - testing_data$Absenteeism.time.in.hours)^2))
-
-
-
-
 print(paste("Root Mean Squared Error (RMSE):", rmse))
 
-# Extract feature importance scores
+################################################################################ Extract feature importance scores
 importance_scores <- rf_model$importance
 
-library(ggplot2)
-
-
-attach(importance_df)
 
 # Create a data frame with the importance scores
 importance_df <- data.frame(Features = rownames(importance_scores),
                             Importance_Score = importance_scores)
-
-names(importance_df)
-
-barplot(importance_df$IncNodePurity)
 
 
 # Sort the data frame by Importance_Score in descending order
