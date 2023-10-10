@@ -253,6 +253,15 @@ library(randomForest)
 
 library(caret)
 
+
+#train and test
+set.seed(1)
+
+
+train <- sample(1:nrow(abs_data),0.8*nrow(abs_data))
+training_data <- abs_data[train,]
+testing_data <- abs_data[-train,]
+
 # Define the row indices for training and testing
 train_indices <- sample(1:nrow(abs_data), nrow(abs_data) / 2)
 test_indices <- setdiff(1:nrow(abs_data), train_indices)
