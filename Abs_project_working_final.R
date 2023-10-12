@@ -23,8 +23,6 @@ for (i in 1:nrow(abs))
     reason_type[i]="sick"
   if (is.element(reason,c(15,16)))
     reason_type[i]="pragnant"
- # if (is.element(reason,c(19,20)))
-  #  reason_type[i]="doctor_visit"
   if (is.element(reason,c(22:25)))
     reason_type[i]="consultation"
   if (is.element(reason,c(26,0)))
@@ -54,6 +52,10 @@ for (i in cat.col)
 {
   abs_data[,i] <- as.factor(as.character(abs_data[,i]))
 }
+
+
+df = abs_data
+
 
 #summary(abs_data)
 ################################################################################Adding Dummies
@@ -256,7 +258,7 @@ testing_data <- as.data.frame(testing_data)
 
 ################################################################################ Evaluate the model (calculate RMSE)
 rmse <- sqrt(mean((predictions - testing_data$Absenteeism.time.in.hours)^2))
-print(paste("Root Mean Squared Error (RMSE):", rmse))
+print(paste("Root Mean Squared Error (RMSE):", rmse)) #10.3545
 
 ################################################################################ Extract feature importance scores
 importance_scores <- rf_model$importance
@@ -279,39 +281,127 @@ ggplot(importance_df, aes(x = reorder(Features, IncNodePurity), y = IncNodePurit
   labs(title = "Feature Importance Scores", x = "Features", y = "Importance Score") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate x-axis labels for readability
 
-##############################################################
+################################################################################ Training and testing seed(1)
 
-
-
-#train and test
 set.seed(1)
 
-
-train <- sample(1:nrow(abs_data),0.8*nrow(abs_data))
-train_data <- abs_data[train,]
-test_data <- abs_data[-train,]
-
-summary(train_data)
-
+train <- sample(1:nrow(df),0.8*nrow(df))
+training_data <- df[train,]
+testing_data <- df[-train,]
+dim(testing_data)
 
 ########################################Linear regression fit and predict.
+library(tidyr)
+library(dplyr)
 
-lm_fit <- lm(Absenteeism.time.in.hours~.,train_data)
-lm_pred <- predict(lm_fit,newdata=test_data)
+
+#do not take out Transport expense, age, Education,Social.smoke
+# Fit a GLM model for linear regression
+model <- glm(Absenteeism.time.in.hours ~. -Education - Social.smoker - Month.of.absence -Pet -Age - Transportation.expense -Social.drinker  -Service.time -Seasons -Body.mass.index
+            , data = training_data)
+summary(model)
+
+
+
+# Create a null model (intercept-only model)
+null_model <- glm(Absenteeism.time.in.hours ~ 1, data = training_data)
+
+
+fullmodel <- glm(Absenteeism.time.in.hours ~. , data = training_data)
+summary(fullmodel)
+
+
+# Use anova to compare the two models
+anova_result <- anova(fullmodel, model, test = "Chisq")
+print(anova_result)
+
+
+
+
+################################################################################Goodness of fit
+
+
+# Use anova to compare the two models
+anova_result <- anova(null_model, model, test = "Chisq")
+print(anova_result)
+
+
+
+# Assuming you already have your model and test_data
+predictions <- predict(model, newdata = testing_data)
+residuals <- testing_data$Absenteeism.time.in.hours - predictions
+mse <- mean(residuals^2)
+rmse <- sqrt(mse)
+
+
+cat("Root Mean Squared Error (RMSE):", rmse, "\n")
+
+
+anova(model)
+
+# Load the 'car' package for VIF calculation
+library(car)
+
+# Calculate VIF for the model
+vif_result <- car::vif(model)
+
+# View the VIF values
+print(vif_result)
+#Based on VIS results we cab drop service time and season
+
+################################################################################ checking assumptions
+
+# Check normality of residuals
+residuals <- testing_data$Absenteeism.time.in.hours - predictions
+hist(residuals, main = "Histogram of Residuals")
+
+#Residuals vs. Fitted Values Plot:
+plot(model, which = 1)  #do not see a pronounced curve with the exception of some outliers
+
+plot(model, which = 4)  # obs that indicate non linearity: 324, 421, 324, 623
+
+plot(model, which = 3)    #heterostadiscity
+
+obs_row <- abs_data[623, ]
+
+
+qqnorm(residuals)
+qqline(residuals)
+#not notmal
+
+shapiro.test(residuals)
+#This indicates strong evidence against the null hypothesis that the residuals are normally distributed. 
+
+
+# Create scatterplots for visual inspection
+par(mfrow = c(3, 3))  # To arrange plots in a grid, change the dimensions as needed
+
+names(df)
+# Replace the variable names with your actual column names
+plot( df$Son, df$Absenteeism.time.in.hours,
+     main = "Scatterplot: Absenteeism vs. distance")
+
+plot(data$Absenteeism.time.in.hours, data$Distance.from.Residence.to.Work, 
+     main = "Scatterplot: Absenteeism vs. Distance from Residence to Work")
+
+# Continue plotting for other independent variables...
+
+par(mfrow = c(1, 1))  # Reset to default plot layout
+
+
+
+
+
+lm_fit <- lm(Absenteeism.time.in.hours~.,training_data)
+lm_pred <- predict(lm_fit,newdata=testing_data)
 summary(lm_fit)
 lm_MSE <-mean((lm_pred-test_data$Absenteeism.time.in.hours)^2)#test MSE
 
 lm_MSE
 
 
-
-
 library(ISLR)
 library(glmnet)
-
-
-
-
 
 
 #model.matrix()automatically transforms qualitat var into dummy var #glmnet() can only take numerical inputs.
