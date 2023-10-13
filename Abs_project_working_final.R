@@ -246,6 +246,7 @@ dim(training_data)
 class(testing_data)
 
 ################################################################################Build Random Forest model
+library(randomForest)
 rf_model <- randomForest(Absenteeism.time.in.hours ~ ., data = training_data)
 
 
@@ -315,6 +316,10 @@ summary(fullmodel)
 anova_result <- anova(fullmodel, model, test = "Chisq")
 print(anova_result)
 
+#potential issue with distance: 
+
+# Create residual plots
+plot(model)
 
 
 
